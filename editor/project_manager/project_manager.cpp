@@ -238,6 +238,7 @@ void ProjectManager::_update_theme(bool p_skip_creation) {
 		title_bar_logo->set_button_icon(get_editor_theme_icon("TitleBarLogo"));
 
 		_set_main_view_icon(MAIN_VIEW_PROJECTS, get_editor_theme_icon("ProjectList"));
+		_set_main_view_icon(MAIN_VIEW_TEMPLATES, get_editor_theme_icon("ProjectList"));
 		_set_main_view_icon(MAIN_VIEW_ASSETLIB, get_editor_theme_icon("AssetLib"));
 
 		// Project list.
@@ -251,6 +252,10 @@ void ProjectManager::_update_theme(bool p_skip_creation) {
 
 			empty_list_online_warning->add_theme_font_override(SceneStringName(font), get_theme_font("italic", EditorStringName(EditorFonts)));
 			empty_list_online_warning->add_theme_color_override(SceneStringName(font_color), get_theme_color("font_placeholder_color", EditorStringName(Editor)));
+
+			// Template list.
+			// Reuse the same stylebox as the project list.
+			template_list_panel->add_theme_style_override(SceneStringName(panel), get_theme_stylebox("project_list", "ProjectManager"));
 
 			// Top bar.
 			search_box->set_right_icon(get_editor_theme_icon("Search"));
@@ -494,6 +499,14 @@ void ProjectManager::_update_list_placeholder() {
 	}
 
 	empty_list_placeholder->show();
+}
+
+void ProjectManager::_update_template_list_placeholder() {
+	if (template_list->get_project_count() > 0) {
+		empty_template_list_placeholder->hide();
+	} else {
+		empty_template_list_placeholder->show();
+	}
 }
 
 void ProjectManager::_scan_projects() {
@@ -1696,6 +1709,56 @@ ProjectManager::ProjectManager() {
 		}
 	}
 
+	// Templates view.
+	{
+		templates_vb = memnew(VBoxContainer);
+		templates_vb->set_name("TemplatesTab");
+		_add_main_view(MAIN_VIEW_TEMPLATES, TTRC("Templates"), Ref<Texture2D>(), templates_vb);
+
+		HBoxContainer *hb = memnew(HBoxContainer);
+		hb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		templates_vb->add_child(hb);
+
+		// Project list and its sidebar.
+		{
+			HBoxContainer *project_list_hbox = memnew(HBoxContainer);
+			templates_vb->add_child(project_list_hbox);
+			project_list_hbox->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+
+			template_list_panel = memnew(PanelContainer);
+			template_list_panel->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+			project_list_hbox->add_child(template_list_panel);
+
+			template_list = memnew(ProjectList);
+			template_list->set_read_only_config(true);
+			template_list->set_horizontal_scroll_mode(ScrollContainer::SCROLL_MODE_DISABLED);
+			template_list_panel->add_child(template_list);
+			template_list->connect(ProjectList::SIGNAL_LIST_CHANGED, callable_mp(this, &ProjectManager::_update_template_list_placeholder));
+
+			// Empty template list placeholder.
+			{
+				empty_template_list_placeholder = memnew(VBoxContainer);
+				empty_template_list_placeholder->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
+				empty_template_list_placeholder->add_theme_constant_override("separation", 16 * EDSCALE);
+				empty_template_list_placeholder->hide();
+				template_list_panel->add_child(empty_template_list_placeholder);
+
+				empty_template_list_message = memnew(RichTextLabel);
+				empty_template_list_message->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
+				empty_template_list_message->set_use_bbcode(true);
+				empty_template_list_message->set_fit_content(true);
+				empty_template_list_message->set_h_size_flags(SIZE_EXPAND_FILL);
+				empty_template_list_message->add_theme_style_override(CoreStringName(normal), memnew(StyleBoxEmpty));
+
+				const String line1 = TTR("You don't have any templates yet.");
+				const String line2 = TTR("Project templates will be found in the 'templates' folder.");
+				empty_template_list_message->set_text(vformat("[center][b]%s[/b] %s[/center]", line1, line2));
+
+				empty_template_list_placeholder->add_child(empty_template_list_message);
+			}
+		}
+	}
+
 	// Asset library view.
 	if (AssetLibraryEditorPlugin::is_available()) {
 		asset_library = memnew(EditorAssetLibrary(true));
@@ -1929,6 +1992,13 @@ ProjectManager::ProjectManager() {
 			}
 		}
 		project_list->update_project_list();
+
+		// Initialize template list.
+		if (dir_access->dir_exists("templates")) {
+			template_list->find_projects("templates");
+		}
+		template_list->update_project_list();
+
 		initialized = true;
 	}
 

@@ -210,6 +210,7 @@ private:
 
 	int _icon_load_index = 0;
 	bool project_opening_initiated = false;
+	bool read_only_config = false;
 
 	String _search_term;
 	FilterOption _order_option = FilterOption::EDIT_DATE;
@@ -286,6 +287,7 @@ public:
 	// Initialization & loading.
 
 	void save_config();
+	void set_read_only_config(bool p_read_only) { read_only_config = p_read_only; }
 
 	// Project list updates.
 

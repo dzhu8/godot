@@ -96,6 +96,7 @@ class ProjectManager : public Control {
 
 	enum MainViewTab {
 		MAIN_VIEW_PROJECTS,
+		MAIN_VIEW_TEMPLATES,
 		MAIN_VIEW_ASSETLIB,
 		MAIN_VIEW_MAX
 	};
@@ -112,6 +113,7 @@ class ProjectManager : public Control {
 	void _select_main_view(int p_id);
 
 	VBoxContainer *local_projects_vb = nullptr;
+	VBoxContainer *templates_vb = nullptr;
 	EditorAssetLibrary *asset_library = nullptr;
 
 	EditorAbout *about_dialog = nullptr;
@@ -143,7 +145,13 @@ class ProjectManager : public Control {
 
 	void _update_list_placeholder();
 
+	VBoxContainer *empty_template_list_placeholder = nullptr;
+	RichTextLabel *empty_template_list_message = nullptr;
+
+	void _update_template_list_placeholder();
+
 	ProjectList *project_list = nullptr;
+	ProjectList *template_list = nullptr;
 	bool initialized = false;
 
 	LineEdit *search_box = nullptr;
@@ -151,6 +159,7 @@ class ProjectManager : public Control {
 	Label *sort_label = nullptr;
 	OptionButton *filter_option = nullptr;
 	PanelContainer *project_list_panel = nullptr;
+	PanelContainer *template_list_panel = nullptr;
 
 	Button *create_btn = nullptr;
 	Button *import_btn = nullptr;

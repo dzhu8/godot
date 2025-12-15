@@ -618,6 +618,9 @@ void ProjectList::_migrate_config() {
 }
 
 void ProjectList::save_config() {
+	if (read_only_config) {
+		return;
+	}
 	_config.save(_config_path);
 }
 
