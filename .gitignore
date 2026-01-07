@@ -391,3 +391,10 @@ $RECYCLE.BIN/
 *.msp
 *.lnk
 *.generated.props
+
+
+#########################
+### Deprecated folder ###
+#########################
+deprecated/
+
