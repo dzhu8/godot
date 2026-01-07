@@ -64,7 +64,7 @@ void EditorBottomPanel::_on_tab_changed(int p_idx) {
 
 void EditorBottomPanel::_theme_changed() {
 	int icon_width = get_theme_constant(SNAME("class_icon_size"), EditorStringName(Editor));
-	int margin = bottom_hbox->get_minimum_size().x;
+	int margin = bottom_hbox->get_minimum_size().width;
 	if (get_popup()) {
 		margin -= icon_width;
 	}
@@ -126,12 +126,6 @@ void EditorBottomPanel::_repaint() {
 	} else {
 		_theme_changed();
 	}
-}
-
-Size2 EditorBottomPanel::get_minimum_size() const {
-	Size2 min_size = TabContainer::get_minimum_size();
-	min_size.x += bottom_hbox->get_combined_minimum_size().x;
-	return min_size;
 }
 
 void EditorBottomPanel::save_layout_to_config(Ref<ConfigFile> p_config_file, const String &p_section) const {
@@ -213,7 +207,7 @@ Button *EditorBottomPanel::add_item(String p_text, Control *p_item, const Ref<Sh
 	dock->set_dock_shortcut(p_shortcut);
 	dock->set_global(false);
 	dock->set_transient(true);
-	dock->set_default_slot(DockConstants::DOCK_SLOT_BOTTOM);
+	dock->set_default_slot(EditorDock::DOCK_SLOT_BOTTOM);
 	dock->set_available_layouts(EditorDock::DOCK_LAYOUT_HORIZONTAL);
 	EditorDockManager::get_singleton()->add_dock(dock);
 	bottom_docks.push_back(dock);
