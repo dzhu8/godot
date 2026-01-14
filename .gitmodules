@@ -1,0 +1,3 @@
+[submodule "godot-python"]
+	path = godot-python
+	url = https://github.com/touilleMan/godot-python.git
