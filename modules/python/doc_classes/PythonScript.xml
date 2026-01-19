@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="PythonScript" inherits="Script" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		A script implemented in Python.
+	</brief_description>
+	<description>
+		A script implemented in Python. The script extends the functionality of all objects that instantiate it.
+		[codeblock]
+		# Python script example
+		class MyNode(object):
+		    speed: float = 1.0
+
+		    def _ready(self):
+		        print("Hello from Python!")
+
+		    def _process(self, delta):
+		        pass
+		[/codeblock]
+	</description>
+	<tutorials>
+	</tutorials>
+</class>
