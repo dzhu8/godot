@@ -623,9 +623,36 @@ void ProjectDialog::ok_pressed() {
 					if (!da->dir_exists(addons_path)) {
 						da->make_dir(addons_path);
 					}
-					Error err = da->copy_dir(extension_src, addons_path.path_join(ext.name));
+					String addon_dest = addons_path.path_join(ext.name);
+					Error err = da->copy_dir(extension_src, addon_dest);
 					if (err != OK) {
 						_set_message(vformat(TTR("Failed to copy %s extension."), ext.name), MESSAGE_ERROR);
+					}
+
+					// For ros2-godot, also copy ROS2 DLLs from pixi environment
+					if (ext.name == "ros2-godot") {
+						String ros2_dll_path = ext.path.get_base_dir().path_join("ros2/.pixi/envs/jazzy/Library/bin");
+						if (da->dir_exists(ros2_dll_path)) {
+							Ref<DirAccess> dll_da = DirAccess::open(ros2_dll_path);
+							if (dll_da.is_valid()) {
+								dll_da->list_dir_begin();
+								String dll_file = dll_da->get_next();
+								while (!dll_file.is_empty()) {
+									if (!dll_da->current_is_dir() && dll_file.get_extension() == "dll") {
+										String src_file = ros2_dll_path.path_join(dll_file);
+										String dst_file = addon_dest.path_join(dll_file);
+										// Only copy if not already present (don't overwrite extension's own DLL)
+										if (!da->file_exists(dst_file)) {
+											da->copy(src_file, dst_file);
+										}
+									}
+									dll_file = dll_da->get_next();
+								}
+								dll_da->list_dir_end();
+							}
+						} else {
+							WARN_PRINT("ROS2 DLLs not found at " + ros2_dll_path + ". The ros2-godot extension may not work correctly.");
+						}
 					}
 				} else {
 					// Fallback or warning
