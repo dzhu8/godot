@@ -84,6 +84,7 @@ private:
 	VBoxContainer *renderer_container = nullptr;
 	Label *renderer_info = nullptr;
 	HBoxContainer *default_files_container = nullptr;
+	VBoxContainer *simulacrum_extensions_container = nullptr;
 	Ref<ButtonGroup> renderer_button_group;
 	bool rendering_device_supported = false;
 	bool rendering_device_checked = false;
@@ -97,6 +98,13 @@ private:
 	TextureRect *install_status_rect = nullptr;
 
 	OptionButton *vcs_metadata_selection = nullptr;
+
+	struct SimulacrumExtension {
+		String name;
+		String path;
+		CheckBox *checkbox = nullptr;
+	};
+	Vector<SimulacrumExtension> simulacrum_extensions;
 
 	CheckBox *edit_check_box = nullptr;
 

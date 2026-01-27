@@ -613,6 +613,27 @@ void ProjectDialog::ok_pressed() {
 
 		EditorVCSInterface::create_vcs_metadata_files(EditorVCSInterface::VCSMetadata(vcs_metadata_selection->get_selected()), path);
 
+		for (const SimulacrumExtension &ext : simulacrum_extensions) {
+			if (ext.checkbox->is_pressed()) {
+				Ref<DirAccess> da = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+				String extension_src = ext.path.path_join("bin");
+
+				if (da->dir_exists(extension_src)) {
+					String addons_path = path.path_join("addons");
+					if (!da->dir_exists(addons_path)) {
+						da->make_dir(addons_path);
+					}
+					Error err = da->copy_dir(extension_src, addons_path.path_join(ext.name));
+					if (err != OK) {
+						_set_message(vformat(TTR("Failed to copy %s extension."), ext.name), MESSAGE_ERROR);
+					}
+				} else {
+					// Fallback or warning
+					WARN_PRINT("Simulacrum: " + ext.name + " extension bin not found at " + extension_src);
+				}
+			}
+		}
+
 		// Ensures external editors and IDEs use UTF-8 encoding.
 		const String editor_config_path = path.path_join(".editorconfig");
 		Ref<FileAccess> f = FileAccess::open(editor_config_path, FileAccess::WRITE);
@@ -868,6 +889,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 		install_path_container->hide();
 		renderer_container->hide();
 		default_files_container->hide();
+		simulacrum_extensions_container->hide();
 
 		callable_mp((Control *)project_name, &Control::grab_focus).call_deferred(false);
 		callable_mp(project_name, &LineEdit::select_all).call_deferred();
@@ -910,6 +932,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			install_path_container->hide();
 			renderer_container->hide();
 			default_files_container->hide();
+			simulacrum_extensions_container->hide();
 
 			// Project path dialog is also opened; no need to change focus.
 		} else if (mode == MODE_NEW) {
@@ -937,6 +960,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			install_path_container->hide();
 			renderer_container->show();
 			default_files_container->show();
+			simulacrum_extensions_container->show();
 
 			callable_mp((Control *)project_name, &Control::grab_focus).call_deferred(false);
 			callable_mp(project_name, &LineEdit::select_all).call_deferred();
@@ -950,6 +974,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			install_path_container->hide();
 			renderer_container->hide();
 			default_files_container->hide();
+			simulacrum_extensions_container->hide();
 
 			callable_mp((Control *)project_path, &Control::grab_focus).call_deferred(false);
 		} else if (mode == MODE_DUPLICATE) {
@@ -960,6 +985,7 @@ void ProjectDialog::show_dialog(bool p_reset_name, bool p_is_confirmed) {
 			install_path_container->hide();
 			renderer_container->hide();
 			default_files_container->hide();
+			simulacrum_extensions_container->hide();
 			if (!duplicate_can_edit) {
 				edit_check_box->hide();
 			}
@@ -1210,6 +1236,57 @@ ProjectDialog::ProjectDialog() {
 	Control *spacer = memnew(Control);
 	spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 	default_files_container->add_child(spacer);
+
+	// Simulacrum extensions
+	simulacrum_extensions_container = memnew(VBoxContainer);
+	vb->add_child(simulacrum_extensions_container);
+	Label *l_sim = memnew(Label);
+	l_sim->set_text(TTRC("Simulacrum Extensions:"));
+	simulacrum_extensions_container->add_child(l_sim);
+
+	// Dynamically find extensions in ../../ (relative to bin/)
+	simulacrum_extensions.clear();
+	String root_ext_path = OS::get_singleton()->get_executable_path().get_base_dir().path_join("../../");
+	Ref<DirAccess> da_ext = DirAccess::open(root_ext_path);
+	if (da_ext.is_valid()) {
+		da_ext->list_dir_begin();
+		String file_name = da_ext->get_next();
+		while (!file_name.is_empty()) {
+			if (da_ext->current_is_dir() && !file_name.begins_with(".")) {
+				String bin_path = root_ext_path.path_join(file_name).path_join("bin");
+				Ref<DirAccess> da_bin = DirAccess::open(bin_path);
+				if (da_bin.is_valid()) {
+					// Check if contains .gdextension
+					da_bin->list_dir_begin();
+					String bin_file = da_bin->get_next();
+					bool is_extension = false;
+					while (!bin_file.is_empty()) {
+						if (!da_bin->current_is_dir() && bin_file.get_extension() == "gdextension") {
+							is_extension = true;
+							break;
+						}
+						bin_file = da_bin->get_next();
+					}
+					da_bin->list_dir_end();
+
+					if (is_extension) {
+						CheckBox *cb = memnew(CheckBox);
+						cb->set_text(file_name);
+						simulacrum_extensions_container->add_child(cb);
+
+						SimulacrumExtension ext;
+						ext.name = file_name;
+						ext.path = root_ext_path.path_join(file_name);
+						ext.checkbox = cb;
+						simulacrum_extensions.push_back(ext);
+					}
+				}
+			}
+			file_name = da_ext->get_next();
+		}
+		da_ext->list_dir_end();
+	}
+
 	fdialog_install = memnew(EditorFileDialog);
 	fdialog_install->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
 	add_child(fdialog_install);
