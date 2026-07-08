@@ -1316,7 +1316,6 @@ void ShaderLanguage::clear() {
 	last_name = StringName();
 	last_type = IDENTIFIER_MAX;
 	current_uniform_group_name = "";
-	current_uniform_subgroup_name = "";
 	current_uniform_hint = ShaderNode::Uniform::HINT_NONE;
 	current_uniform_filter = FILTER_DEFAULT;
 	current_uniform_repeat = REPEAT_DEFAULT;
@@ -3313,20 +3312,20 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 
 	// textureGather
 
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, false },
-	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, false },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2D, TYPE_VEC2, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2D, TYPE_VEC2, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2DARRAY, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_IVEC4, { TYPE_ISAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_UVEC4, { TYPE_USAMPLER2DARRAY, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_VOID }, { "sampler", "coords" }, TAG_GLOBAL, true },
+	{ "textureGather", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_INT, TYPE_VOID }, { "sampler", "coords", "comp" }, TAG_GLOBAL, true },
 
 	// textureQueryLod
 
@@ -3589,6 +3588,7 @@ const ShaderLanguage::BuiltinEntry ShaderLanguage::frag_only_func_defs[] = {
 	{ "fwidth" },
 	{ "fwidthCoarse" },
 	{ "fwidthFine" },
+	{ "textureQueryLod" },
 	{ nullptr }
 };
 
@@ -9767,7 +9767,6 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 					uniform.precision = precision;
 					uniform.array_size = array_size;
 					uniform.group = current_uniform_group_name;
-					uniform.subgroup = current_uniform_subgroup_name;
 
 					tk = _get_token();
 					if (tk.type == TK_BRACKET_OPEN) {
@@ -10057,6 +10056,10 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 									new_hint = ShaderNode::Uniform::HINT_SCREEN_TEXTURE;
 									--texture_uniforms;
 									--texture_binding;
+									if (shader_type_identifier != StringName() && !(String(shader_type_identifier) == "spatial" || String(shader_type_identifier) == "canvas_item")) {
+										_set_error(vformat(RTR("'hint_screen_texture' is not supported in '%s' shaders."), shader_type_identifier));
+										return ERR_PARSE_ERROR;
+									}
 								} break;
 								case TK_HINT_NORMAL_ROUGHNESS_TEXTURE: {
 									new_hint = ShaderNode::Uniform::HINT_NORMAL_ROUGHNESS_TEXTURE;
@@ -10301,22 +10304,22 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 				tk = _get_token();
 				if (tk.type == TK_IDENTIFIER) {
 					current_uniform_group_name = tk.text;
-					current_uniform_subgroup_name = "";
+
 					tk = _get_token();
-					if (tk.type == TK_PERIOD) {
+					while (tk.type == TK_PERIOD) {
 						tk = _get_token();
+
 						if (tk.type == TK_IDENTIFIER) {
-							current_uniform_subgroup_name = tk.text;
-							tk = _get_token();
-							if (tk.type != TK_SEMICOLON) {
-								_set_expected_error(";");
-								return ERR_PARSE_ERROR;
-							}
+							current_uniform_group_name += "/" + tk.text;
 						} else {
 							_set_error(RTR("Expected an uniform subgroup identifier."));
 							return ERR_PARSE_ERROR;
 						}
-					} else if (tk.type != TK_SEMICOLON) {
+
+						tk = _get_token();
+					}
+
+					if (tk.type != TK_SEMICOLON) {
 						_set_expected_error(";", ".");
 						return ERR_PARSE_ERROR;
 					}
@@ -10333,7 +10336,6 @@ Error ShaderLanguage::_parse_shader(const HashMap<StringName, FunctionInfo> &p_f
 						return ERR_PARSE_ERROR;
 					} else {
 						current_uniform_group_name = "";
-						current_uniform_subgroup_name = "";
 					}
 				}
 			} break;
@@ -11495,7 +11497,7 @@ Error ShaderLanguage::complete(const String &p_code, const ShaderCompileInfo &p_
 				if (keyword_list[i].excluded_shader_types.has(shader_type_identifier) || keyword_list[i].excluded_functions.has(current_function)) {
 					continue;
 				}
-				ScriptLanguage::CodeCompletionOption option(keyword_list[i].text, ScriptLanguage::CODE_COMPLETION_KIND_PLAIN_TEXT);
+				ScriptLanguage::CodeCompletionOption option(keyword_list[i].text, ScriptLanguage::CODE_COMPLETION_KIND_KEYWORD);
 				r_options->push_back(option);
 			}
 		}
