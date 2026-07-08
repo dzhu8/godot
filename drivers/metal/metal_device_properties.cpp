@@ -50,15 +50,13 @@
 
 #include "metal_device_properties.h"
 
-#include "metal_utils.h"
-
 #include "core/os/os.h"
+#include "drivers/metal/metal_utils.h"
 #include "servers/rendering/renderer_rd/effects/metal_fx.h"
 
 #include <MetalFX/MetalFX.hpp>
 #include <spirv_cross.hpp>
 #include <spirv_msl.hpp>
-
 #include <unistd.h>
 
 // Common scaling multipliers.
@@ -167,7 +165,7 @@ void MetalDeviceProperties::init_features(MTL::Device *p_device) {
 	}
 
 	if (__builtin_available(macOS 15.0, iOS 18.0, tvOS 18.0, visionOS 2.0, *)) {
-		features.supports_residency_sets = true;
+		features.supports_residency_sets = p_device->supportsFamily(MTL::GPUFamilyApple6);
 	} else {
 		features.supports_residency_sets = false;
 	}

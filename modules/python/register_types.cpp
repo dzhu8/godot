@@ -35,6 +35,7 @@
 
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
+#include "core/object/class_db.h"
 
 PythonLanguage *script_language_python = nullptr;
 Ref<ResourceFormatLoaderPythonScript> resource_loader_python;

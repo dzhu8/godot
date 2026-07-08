@@ -55,14 +55,14 @@
 #include "editor/themes/editor_theme_manager.h"
 #include "editor/translations/editor_translation.h"
 #include "main/main.h"
-#include "modules/regex/regex.h"
 #include "scene/gui/color_picker.h"
 #include "scene/gui/file_dialog.h"
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
-#include "scene/main/window.h"
 #include "scene/resources/animation.h"
 #include "servers/display/display_server.h"
+
+#include "modules/regex/regex.h"
 
 // PRIVATE METHODS
 
@@ -91,10 +91,6 @@ bool EditorSettings::_set(const StringName &p_name, const Variant &p_value) {
 			}
 		}
 		emit_signal(SNAME("settings_changed"));
-
-		if (p_name == SNAME("interface/editor/localization/editor_language")) {
-			setup_language(false);
-		}
 	}
 	return true;
 }
@@ -455,8 +451,13 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 		EDITOR_SETTING_USAGE(Variant::STRING, PROPERTY_HINT_ENUM, "interface/editor/localization/editor_language", "auto", lang_hint, PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED | PROPERTY_USAGE_EDITOR_BASIC_SETTING);
 	}
 
-	// Asset library
-	_initial_set("asset_library/use_threads", true);
+	/* Asset Store */
+
+	_initial_set("asset_store/use_threads", true);
+
+	Dictionary default_urls;
+	default_urls["godotengine.org (Official)"] = "https://store.godotengine.org/api/v1";
+	_initial_set("asset_store/available_urls", default_urls, true);
 
 	/* Interface */
 
@@ -565,6 +566,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 #endif
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/editor/appearance/collapse_main_menu", is_android_editor, "")
 
+	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/editor/appearance/show_renderer_selector", false, "")
+
 	_initial_set("interface/editors/derive_script_globals_by_name", true);
 	_initial_set("docks/scene_tree/ask_before_revoking_unique_name", true);
 
@@ -586,14 +589,12 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/inspector/open_resources_in_current_inspector", true, "")
 
 	PackedStringArray open_in_new_inspector_defaults;
-	// Required for the script editor to work.
-	open_in_new_inspector_defaults.push_back("Script");
-	// Required for the GridMap editor to work.
-	open_in_new_inspector_defaults.push_back("MeshLibrary");
+	open_in_new_inspector_defaults.push_back("Script"); // Required for the script editor to work.
 	_initial_set("interface/inspector/resources_to_open_in_new_inspector", open_in_new_inspector_defaults);
 
 	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/accessibility/accessibility_support", 0, "Auto (When Screen Reader is Running),Always Active,Disabled")
 	set_restart_if_changed("interface/accessibility/accessibility_support", true);
+	EDITOR_SETTING_BASIC(Variant::BOOL, PROPERTY_HINT_NONE, "interface/accessibility/property_descriptions", true, "")
 
 	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/inspector/default_color_picker_mode", (int32_t)ColorPicker::MODE_RGB, "RGB,HSV,RAW,OKHSL")
 	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/inspector/default_color_picker_shape", (int32_t)ColorPicker::SHAPE_OKHSL_CIRCLE, "HSV Rectangle,HSV Rectangle Wheel,VHS Circle,OKHSL Circle,OK HS Rectangle:5,OK HL Rectangle") // `SHAPE_NONE` is 4.
@@ -627,6 +628,8 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/touchscreen/enable_touch_optimizations", is_native_touchscreen, "")
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/touchscreen/enable_long_press_as_right_click", is_native_touchscreen, "")
 	set_restart_if_changed("interface/touchscreen/enable_long_press_as_right_click", true);
+	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/touchscreen/haptic_on_long_press", is_native_touchscreen, "")
+	set_restart_if_changed("interface/touchscreen/haptic_on_long_press", true);
 
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/touchscreen/enable_pan_and_scale_gestures", has_touchscreen_ui, "")
 	set_restart_if_changed("interface/touchscreen/enable_pan_and_scale_gestures", true);
@@ -714,6 +717,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("docks/filesystem/textfile_extensions", "txt,md,cfg,ini,log,json,yml,yaml,toml,xml");
 	_initial_set("docks/filesystem/other_file_extensions", "ico,icns");
 	_initial_set("docks/filesystem/automatically_open_created_scripts", true);
+	_initial_set("docks/filesystem/ask_before_moving_files", true);
 
 	// Property editor
 	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "docks/property_editor/auto_refresh_interval", 0.2, "0.01,1,0.001"); // Update 5 times per second by default.
@@ -971,7 +975,11 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/zoom_inertia", 0.05, "0,1,0.001")
 	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/navigation_feel/angle_snap_threshold", 10.0, "1,20,0.1,degrees")
 	_initial_set("editors/3d/navigation/show_viewport_rotation_gizmo", true);
-	_initial_set("editors/3d/navigation/show_viewport_navigation_gizmo", DisplayServer::get_singleton()->is_touchscreen_available());
+	bool should_show_viewport_navigation_gizmo = false;
+#ifdef ANDROID_ENABLED
+	should_show_viewport_navigation_gizmo = true;
+#endif
+	_initial_set("editors/3d/navigation/show_viewport_navigation_gizmo", should_show_viewport_navigation_gizmo);
 
 	// 3D: Freelook
 	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "editors/3d/freelook/freelook_navigation_scheme", 0, "Default,Partially Axis-Locked (id Tech),Fully Axis-Locked (Minecraft)")
@@ -986,7 +994,7 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_RANGE, "editors/3d/manipulator_gizmo_size", 80, "16,160,1");
 	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/manipulator_gizmo_opacity", 0.9, "0,1,0.01");
 	EDITOR_SETTING(Variant::INT, PROPERTY_HINT_FLAGS, "editors/3d/show_gizmo_during_rotation", 2, "Global,Local");
-	EDITOR_SETTING_USAGE(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/view_plane_rotation_gizmo_scale", 1.14, "1.0,2.0,0.01,or_greater", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED);
+	EDITOR_SETTING(Variant::FLOAT, PROPERTY_HINT_RANGE, "editors/3d/view_plane_rotation_gizmo_scale", 1.14, "1.0,2.0,0.01,or_greater");
 
 	// 2D
 	_initial_set("editors/2d/grid_color", Color(1.0, 1.0, 1.0, 0.07), true);
@@ -1044,6 +1052,16 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("editors/animation/insert_at_current_time", false, true);
 	_initial_set("editors/animation/onion_layers_past_color", Color(1, 0, 0));
 	_initial_set("editors/animation/onion_layers_future_color", Color(0, 1, 0));
+
+	// Audio buses
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/active_max_db_color", Color(1.0, 0.0, 0.0), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/active_min_db_color", Color(0.0, 1.0, 0.1), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/active_normalized_db_color", Color(1.0, 1.0, 0.1), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/inactive_max_db_color", Color(0.0, 0.5, 1.0), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/inactive_min_db_color", Color(0.0, 1.0, 1.0), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/inactive_normalized_db_color", Color(1.0, 1.0, 1.0), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/tint_over_color", Color(0.15, 0.15, 0.15), "")
+	EDITOR_SETTING(Variant::COLOR, PROPERTY_HINT_NONE, "editors/audio_buses/tint_under_color", Color(0.15, 0.15, 0.15), "")
 
 	// Shader editor
 	_initial_set("editors/shader_editor/behavior/files/restore_shaders_on_load", true, true);
@@ -1260,6 +1278,7 @@ void EditorSettings::_handle_setting_compatibility() {
 	erase("run/output/always_close_output_on_stop");
 	erase("text_editor/theme/line_spacing"); // See GH-106137.
 	erase("interface/editors/show_scene_tree_root_selection");
+	erase("asset_library/available_urls"); // Workaround bugged settings treating the previous default as a modified value (see GH-118755).
 
 	// Handle renamed settings.
 	_rename_setting("interface/editor/editor_language", "interface/editor/localization/editor_language");
@@ -1306,6 +1325,7 @@ void EditorSettings::_handle_setting_compatibility() {
 	_rename_setting("interface/editor/vsync_mode", "interface/editor/display/vsync_mode");
 	_rename_setting("interface/editor/update_continuously", "interface/editor/display/update_continuously");
 	_rename_setting("interface/editor/collapse_main_menu", "interface/editor/appearance/collapse_main_menu");
+	_rename_setting("asset_library/use_threads", "asset_store/use_threads");
 }
 
 void EditorSettings::_rename_setting(const String &p_old_name, const String &p_new_name) {
@@ -1397,6 +1417,7 @@ void EditorSettings::create() {
 
 		print_verbose("EditorSettings: Load OK!");
 
+		singleton->init_shortcuts();
 		singleton->setup_language(true);
 		singleton->setup_network();
 		singleton->load_favorites_and_recent_dirs();
@@ -1424,9 +1445,14 @@ fail:
 	singleton->set_path(config_file_path, true);
 	singleton->save_changed_setting = true;
 	singleton->_load_defaults(extra_config);
+	singleton->init_shortcuts();
 	singleton->setup_language(true);
 	singleton->setup_network();
 	singleton->update_text_editor_themes_list();
+}
+
+void EditorSettings::init_shortcuts() {
+	ED_SHORTCUT("editor/open_search", TTRC("Focus Search/Filter Bar"), KeyModifierMask::CMD_OR_CTRL | Key::F);
 }
 
 void EditorSettings::setup_language(bool p_initial_setup) {
@@ -2003,8 +2029,8 @@ float EditorSettings::get_auto_display_scale() {
 }
 
 String EditorSettings::get_language() const {
-	const String language = has_setting("interface/editor/localization/editor_language") ? get("interface/editor/localization/editor_language") : "auto";
-	if (language != "auto") {
+	const String language = has_setting("interface/editor/localization/editor_language") ? get_setting("interface/editor/localization/editor_language") : "auto";
+	if (language != "auto" && !language.is_empty()) {
 		return language;
 	}
 
@@ -2334,6 +2360,10 @@ void EditorSettings::notify_changes() {
 		return;
 	}
 	root->propagate_notification(NOTIFICATION_EDITOR_SETTINGS_CHANGED);
+
+	if (check_changed_settings_in_group("interface/editor/localization/editor_language")) {
+		setup_language(false);
+	}
 }
 
 void EditorSettings::get_argument_options(const StringName &p_function, int p_idx, List<String> *r_options) const {

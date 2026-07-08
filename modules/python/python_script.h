@@ -32,9 +32,9 @@
 
 #include "python_type_conversion.h"
 
-#include "core/object/script_language.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
+#include "core/object/script_language.h"
 #include "core/templates/self_list.h"
 
 class PythonInstance;
@@ -87,7 +87,6 @@ public:
 	virtual StringName get_instance_base_type() const override;
 	virtual ScriptInstance *instance_create(Object *p_this) override;
 	virtual PlaceHolderScriptInstance *placeholder_instance_create(Object *p_this) override;
-	virtual bool instance_has(const Object *p_this) const override;
 
 	virtual bool has_source_code() const override;
 	virtual String get_source_code() const override;

@@ -29,11 +29,13 @@
 /**************************************************************************/
 
 #include "python_script.h"
+
 #include "python_instance.h"
 #include "python_language.h"
 
-#include "core/io/file_access.h"
 #include "core/config/engine.h"
+#include "core/io/file_access.h"
+#include "core/object/class_db.h"
 
 void PythonScript::_bind_methods() {
 	// No special bindings needed for now
@@ -309,11 +311,6 @@ PlaceHolderScriptInstance *PythonScript::placeholder_instance_create(Object *p_t
 #else
 	return nullptr;
 #endif
-}
-
-bool PythonScript::instance_has(const Object *p_this) const {
-	MutexLock lock(PythonLanguage::get_singleton()->mutex);
-	return instances.has((Object *)p_this);
 }
 
 bool PythonScript::has_source_code() const {

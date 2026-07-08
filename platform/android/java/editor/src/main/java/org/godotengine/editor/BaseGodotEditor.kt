@@ -279,9 +279,9 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 	override fun onConfigurationChanged(newConfig: Configuration) {
 		super.onConfigurationChanged(newConfig)
 
-		// Show EditorTitleBar only in landscape due to width limitations in portrait.
+		// Show EditorTitleBar on small screens only in landscape due to width limitations in portrait.
 		// TODO: Enable for portrait once the title bar width is optimized.
-		EditorUtils.toggleTitleBar(newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE)
+		EditorUtils.toggleTitleBar(isLargeScreen || newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE)
 	}
 
 	override fun onDestroy() {
@@ -450,6 +450,7 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 		val longPressEnabled = enableLongPressGestures()
 		val panScaleEnabled = enablePanAndScaleGestures()
 		val overrideVolumeButtonsEnabled = overrideVolumeButtons()
+		val hapticEnabled = enableHapticOnLongPress()
 
 		runOnUiThread {
 			// Enable long press, panning and scaling gestures
@@ -457,6 +458,7 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 				enableLongPress(longPressEnabled)
 				enablePanningAndScalingGestures(panScaleEnabled)
 				setOverrideVolumeButtons(overrideVolumeButtonsEnabled)
+				enableHapticFeedback(hapticEnabled)
 			}
 		}
 	}
@@ -720,6 +722,12 @@ abstract class BaseGodotEditor : GodotActivity(), GameMenuFragment.GameMenuListe
 	 */
 	protected open fun enableLongPressGestures() =
 		java.lang.Boolean.parseBoolean(GodotLib.getEditorSetting("interface/touchscreen/enable_long_press_as_right_click"))
+
+	/**
+	 * Enable haptic feedback on long-press right-click for the Godot Android editor.
+	 */
+	protected open fun enableHapticOnLongPress() =
+		java.lang.Boolean.parseBoolean(GodotLib.getEditorSetting("interface/touchscreen/haptic_on_long_press"))
 
 	/**
 	 * Disable scroll deadzone for the Godot Android editor.
