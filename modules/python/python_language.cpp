@@ -29,6 +29,7 @@
 /**************************************************************************/
 
 #include "python_language.h"
+
 #include "python_config.gen.h"
 
 #include <cstdlib> // For getenv
@@ -430,10 +431,6 @@ bool PythonLanguage::validate(const String &p_script, const String &p_path, List
 	Py_DECREF(code);
 	PyGILState_Release(gstate);
 	return true;
-}
-
-Script *PythonLanguage::create_script() const {
-	return memnew(PythonScript);
 }
 
 bool PythonLanguage::supports_builtin_mode() const {
